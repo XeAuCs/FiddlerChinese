@@ -13,10 +13,10 @@
 项目仓库：[XeAuCs/FiddlerChinese](https://github.com/XeAuCs/FiddlerChinese)。命令从本仓库下载最新正式版。
 
 ```powershell
-& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/XeAuCs/FiddlerChinese/main/install-online.ps1').Content)) -Repository 'XeAuCs/FiddlerChinese'
+& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/XeAuCs/FiddlerChinese/main/install-online.ps1?v=2').Content)) -Repository 'XeAuCs/FiddlerChinese'
 ```
 
-命令会读取该仓库最新正式 Release，下载并校验安装包，自动寻找 Fiddler Classic，备份已有汉化文件，然后安装插件。Fiddler 正在运行时会停止安装并提示关闭，不会强制结束进程。安装到受保护的 Program Files 目录可能需要在管理员 PowerShell 中运行。
+命令会通过 GitHub 的公开 Release 下载链接取得最新正式版并校验安装包，不查询 GitHub API，也无需 GitHub 登录或令牌。随后自动寻找 Fiddler Classic，备份已有汉化文件并安装插件。Fiddler 正在运行时会停止安装并提示关闭，不会强制结束进程。安装到受保护的 Program Files 目录可能需要在管理员 PowerShell 中运行。
 
 便携版或有多个安装目录时，在同一条命令末尾加上 `-FiddlerPath 'D:\Fiddler'`。需要固定版本时再加 `-Version 'v2.0.0'`。
 

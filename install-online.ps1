@@ -18,38 +18,25 @@ $assetName = 'FiddlerChinese.zip'
 try {
     [Net.ServicePointManager]::SecurityProtocol = $previousTls -bor [Net.SecurityProtocolType]::Tls12
     New-Item -ItemType Directory -Path $stage | Out-Null
-    $releasePath = 'latest'
-    if ($Version) { $releasePath = 'tags/' + [Uri]::EscapeDataString($Version) }
-    $headers = @{Accept='application/vnd.github+json'; 'User-Agent'='FiddlerChinese-Installer'}
-    Write-Output "Looking up the release from $Repository..."
-    try {
-        $response = Invoke-WebRequest -UseBasicParsing -Uri "https://api.github.com/repos/$Repository/releases/$releasePath" -Headers $headers -TimeoutSec 60
-        $release = $response.Content | ConvertFrom-Json
-    } catch {
-        throw "Cannot read the GitHub release. Check the repository name, network access and whether a public release has been published. $($_.Exception.Message)"
-    }
-    # Obtain both files from the same release even if a new release appears during installation.
-    $assets = @($release.assets)
-    $downloads = @{}
+    # Public asset links do not require an unauthenticated GitHub API request.
+    $releasePath = 'latest/download'
+    if ($Version) { $releasePath = 'download/' + [Uri]::EscapeDataString($Version) }
+    $downloadBase = "https://github.com/$Repository/releases/$releasePath"
+    $headers = @{'User-Agent'='FiddlerChinese-Installer'}
+    Write-Output "Downloading Fiddler Chinese UI from $Repository..."
     foreach ($name in @($assetName, "$assetName.sha256")) {
-        $matches = @($assets | Where-Object { $_.name -ceq $name })
-        if ($matches.Count -ne 1) { throw "The release must contain the asset '$name'." }
-        $url = [string]$matches[0].browser_download_url
-        if (!$url.StartsWith("https://github.com/$Repository/releases/download/", [StringComparison]::OrdinalIgnoreCase)) {
-            throw "Unexpected release download URL for '$name'."
+        try {
+            Invoke-WebRequest -UseBasicParsing -Uri "$downloadBase/$name" -Headers $headers -OutFile (Join-Path $stage $name) -TimeoutSec 120
+        } catch {
+            throw "Cannot download '$name'. Check access to github.com and that the release contains this asset. No plugin files were installed. $($_.Exception.Message)"
         }
-        $downloads[$name] = $url
-    }
-    Write-Output "Downloading Fiddler Chinese UI $($release.tag_name)..."
-    foreach ($name in @($assetName, "$assetName.sha256")) {
-        Invoke-WebRequest -UseBasicParsing -Uri $downloads[$name] -Headers $headers -OutFile (Join-Path $stage $name) -TimeoutSec 120
     }
     $checksum = (Get-Content -LiteralPath (Join-Path $stage "$assetName.sha256") -Raw).Trim()
     if ($checksum -notmatch '^([0-9a-fA-F]{64})\s+\*?FiddlerChinese\.zip$') { throw 'Invalid release checksum file.' }
     $expected = $Matches[1]
     $archivePath = Join-Path $stage $assetName
     if ((Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash -ne $expected) {
-        throw 'Download checksum mismatch. No plugin files were installed. Please retry.'
+        throw 'Download checksum mismatch. No plugin files were installed. Please retry, or use -Version to select a fixed release.'
     }
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $expanded = Join-Path $stage 'package'

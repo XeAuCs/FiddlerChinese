@@ -93,16 +93,12 @@ function Invoke-WebRequest {
     param([switch]$UseBasicParsing,[string]$Uri,$Headers,[int]$TimeoutSec,[string]$OutFile)
     $global:FiddlerInstallerTest_requested+=@($Uri)
     if($Uri.StartsWith('https://api.github.com/')) {
-        if($global:FiddlerInstallerTest_mode -eq 'network'){throw 'Simulated network failure'}
-        $assets=@(
-            @{name='FiddlerChinese.zip';browser_download_url='https://github.com/test/FiddlerChinese/releases/download/v2.0.0/FiddlerChinese.zip'},
-            @{name='FiddlerChinese.zip.sha256';browser_download_url='https://github.com/test/FiddlerChinese/releases/download/v2.0.0/FiddlerChinese.zip.sha256'}
-        )
-        if($global:FiddlerInstallerTest_mode -eq 'missing'){$assets=@($assets[0])}
-        return @{Content=(@{tag_name='v2.0.0';assets=$assets}|ConvertTo-Json -Depth 5)}
+        throw '403 Forbidden: GitHub API unavailable in this regression fixture'
     }
+    if($global:FiddlerInstallerTest_mode -eq 'network'){throw 'Simulated network failure'}
     $global:FiddlerInstallerTest_downloadStage=Split-Path $OutFile
     if($Uri.EndsWith('.sha256')) {
+        if($global:FiddlerInstallerTest_mode -eq 'missing'){throw '404 Not Found'}
         $value=$global:FiddlerInstallerTest_hash
         if($global:FiddlerInstallerTest_mode -eq 'corrupt'){$value='0'*64}
         [IO.File]::WriteAllText($OutFile,"$value  FiddlerChinese.zip`n")
@@ -111,6 +107,7 @@ function Invoke-WebRequest {
 $oldTls=[Net.ServicePointManager]::SecurityProtocol
 & "$project\install-online.ps1" -Repository 'test/FiddlerChinese' -FiddlerPath $one
 Assert-Installer (Test-Path "$one\bootstrap-ok.txt") 'bootstrap reaches installer and preserves a path with spaces'
+Assert-Installer ($global:FiddlerInstallerTest_requested.Count -eq 2 -and $global:FiddlerInstallerTest_requested[0] -eq 'https://github.com/test/FiddlerChinese/releases/latest/download/FiddlerChinese.zip' -and $global:FiddlerInstallerTest_requested[1] -eq 'https://github.com/test/FiddlerChinese/releases/latest/download/FiddlerChinese.zip.sha256') 'latest release downloads directly without GitHub API'
 Assert-Installer (!(Test-Path $global:FiddlerInstallerTest_downloadStage)) 'temporary download directory is cleaned'
 Assert-Installer ([Net.ServicePointManager]::SecurityProtocol -eq $oldTls) 'original TLS settings are restored'
 Remove-Item -LiteralPath "$one\bootstrap-ok.txt"
@@ -118,13 +115,14 @@ $global:FiddlerInstallerTest_mode='corrupt'
 Assert-Fails {& "$project\install-online.ps1" -Repository 'test/FiddlerChinese' -FiddlerPath $one} 'checksum mismatch' 'corrupt download is rejected'
 Assert-Installer (!(Test-Path "$one\bootstrap-ok.txt")) 'corrupt download never launches installer'
 $global:FiddlerInstallerTest_mode='missing'
-Assert-Fails {& "$project\install-online.ps1" -Repository 'test/FiddlerChinese' -FiddlerPath $one} 'must contain' 'missing release asset is rejected'
+Assert-Fails {& "$project\install-online.ps1" -Repository 'test/FiddlerChinese' -FiddlerPath $one} "Cannot download 'FiddlerChinese.zip.sha256'" 'missing release asset is rejected'
+Assert-Installer (!(Test-Path "$one\bootstrap-ok.txt")) 'missing checksum never launches installer'
 $global:FiddlerInstallerTest_mode='network'
-Assert-Fails {& "$project\install-online.ps1" -Repository 'test/FiddlerChinese' -FiddlerPath $one} 'Cannot read the GitHub release' 'network failure gives actionable error'
+Assert-Fails {& "$project\install-online.ps1" -Repository 'test/FiddlerChinese' -FiddlerPath $one} 'Cannot download' 'network failure gives actionable error'
 $global:FiddlerInstallerTest_mode='success'
 $global:FiddlerInstallerTest_requested=@()
 & "$project\install-online.ps1" -Repository 'test/FiddlerChinese' -FiddlerPath $one -Version 'v2.0.0'
-Assert-Installer ($global:FiddlerInstallerTest_requested[0] -eq 'https://api.github.com/repos/test/FiddlerChinese/releases/tags/v2.0.0') 'explicit release version is supported'
+Assert-Installer ($global:FiddlerInstallerTest_requested[0] -eq 'https://github.com/test/FiddlerChinese/releases/download/v2.0.0/FiddlerChinese.zip') 'explicit release version is supported'
 Remove-Item -LiteralPath "$one\bootstrap-ok.txt"
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $unsafe=Join-Path $work 'unsafe.zip'

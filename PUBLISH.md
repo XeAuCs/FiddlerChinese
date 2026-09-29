@@ -14,7 +14,7 @@
 用户命令模板（Windows PowerShell 5.1 或 PowerShell 7）：
 
 ```powershell
-& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/XeAuCs/FiddlerChinese/main/install-online.ps1').Content)) -Repository 'XeAuCs/FiddlerChinese'
+& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/XeAuCs/FiddlerChinese/main/install-online.ps1?v=2').Content)) -Repository 'XeAuCs/FiddlerChinese'
 ```
 
 ## 更新插件或译文
