@@ -1,5 +1,5 @@
 $ErrorActionPreference='Stop'
-$project=$PSScriptRoot
+$project=Split-Path -Parent $PSScriptRoot
 $work=Join-Path $project ('test-output\online-installer-'+[guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $work -Force | Out-Null
 $global:FiddlerInstallerTest_checks=0
@@ -19,7 +19,7 @@ function New-Fixture([string]$name){
     Set-Content -LiteralPath "$path\Fiddler.exe" -Value 'fixture only'
     return $path
 }
-. "$project\Installer.Common.ps1"
+. "$project\installer\Installer.Common.ps1"
 $global:FiddlerInstallerTest_candidates=@()
 function Get-FiddlerInstallCandidates { $global:FiddlerInstallerTest_candidates }
 $one=New-Fixture 'portable with spaces'
@@ -37,9 +37,9 @@ $global:FiddlerInstallerTest_running=$true
 function Get-Process {param($Name,$ErrorAction) if($global:FiddlerInstallerTest_running){[pscustomobject]@{Name='Fiddler'}}}
 $offline=Join-Path $work 'offline-package'
 New-Item -ItemType Directory -Path "$offline\Scripts\FiddlerChinese" -Force | Out-Null
-foreach($file in @('Install.ps1','Installer.Common.ps1','Restore.ps1')){Copy-Item -LiteralPath "$project\$file" -Destination $offline}
-Copy-Item -LiteralPath "$project\package\Scripts\FiddlerChinese.dll" -Destination "$offline\Scripts"
-Copy-Item -LiteralPath "$project\FiddlerTexts.txt","$project\FiddlerTexts.context.txt" -Destination "$offline\Scripts\FiddlerChinese"
+foreach($file in @('Install.ps1','Installer.Common.ps1','Restore.ps1')){Copy-Item -LiteralPath "$project\installer\$file" -Destination $offline}
+Set-Content -LiteralPath "$offline\Scripts\FiddlerChinese.dll" -Value 'installer byte-copy fixture; not an executable assembly'
+Copy-Item -LiteralPath "$project\translations\FiddlerTexts.txt","$project\translations\FiddlerTexts.context.txt" -Destination "$offline\Scripts\FiddlerChinese"
 Assert-Fails {& "$offline\Install.ps1" -FiddlerPath $one} 'close Fiddler' 'running Fiddler is not terminated'
 Assert-Installer (!(Test-Path "$one\localization-backups")) 'running-app refusal changes no files'
 $global:FiddlerInstallerTest_running=$false

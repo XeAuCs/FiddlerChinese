@@ -1,8 +1,6 @@
-bin/
-test-output/
-obj/
-release/
-github-project/
-github-project.zip
-FiddlerChinese-2.0.zip
-*.exe
+/bin/
+/obj/
+/release/
+/test-output/
+*.user
+*.suo

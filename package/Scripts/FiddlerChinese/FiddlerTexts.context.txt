@@ -1,4 +1,0 @@
-// Optional exact-context overrides:
-// Fully.Qualified.FormOrUserControl|controlName|Text|English==中文
-// Properties: Text, ToolTip, ToolTipText, CueText, Item.
-// These take precedence over FiddlerTexts.txt. Do not change the text before ==.

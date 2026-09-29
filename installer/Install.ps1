@@ -4,7 +4,6 @@ $ErrorActionPreference='Stop'
 $targetRoot=Resolve-FiddlerInstallPath $FiddlerPath
 if(Get-Process -Name Fiddler -ErrorAction SilentlyContinue){throw 'Please close Fiddler before installing.'}
 $payload=Join-Path $PSScriptRoot 'Scripts'
-if(!(Test-Path -LiteralPath "$payload\FiddlerChinese.dll")){$payload=Join-Path $PSScriptRoot 'package\Scripts'}
 if(!(Test-Path -LiteralPath "$payload\FiddlerChinese.dll")){throw 'Plugin package was not found.'}
 $required=@('FiddlerChinese.dll','FiddlerChinese\FiddlerTexts.txt','FiddlerChinese\FiddlerTexts.context.txt')
 foreach($relative in $required){
