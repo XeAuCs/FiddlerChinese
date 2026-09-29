@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [Parameter(Mandatory=$true)]
     [ValidatePattern('^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$')]
@@ -23,7 +23,7 @@ try {
     if ($Version) { $releasePath = 'download/' + [Uri]::EscapeDataString($Version) }
     $downloadBase = "https://github.com/$Repository/releases/$releasePath"
     $headers = @{'User-Agent'='FiddlerChinese-Installer'}
-    Write-Output "Downloading Fiddler Chinese UI from $Repository..."
+    Write-Output "`n正在下载安装文件，请稍候...`n"
     foreach ($name in @($assetName, "$assetName.sha256")) {
         try {
             Invoke-WebRequest -UseBasicParsing -Uri "$downloadBase/$name" -Headers $headers -OutFile (Join-Path $stage $name) -TimeoutSec 120
@@ -58,7 +58,7 @@ try {
     # The execution policy override applies only to this child process.
     & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" @arguments
     if ($LASTEXITCODE -ne 0) { throw 'Installation did not complete. Follow the message above and run the command again.' }
-    Write-Output 'Installation complete. Open Fiddler Classic to use the Chinese UI.'
+
 } finally {
     [Net.ServicePointManager]::SecurityProtocol = $previousTls
     $cleanup = [IO.Path]::GetFullPath($stage)

@@ -21,7 +21,7 @@ $stage=Join-Path $out ('stage-'+[guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path "$stage\Scripts\FiddlerChinese" -Force | Out-Null
 try {
     foreach($file in $files.Keys){Copy-Item -LiteralPath $files[$file] -Destination (Join-Path "$stage\Scripts" $file)}
-    foreach($file in @('Install.ps1','Installer.Common.ps1','Restore.ps1')){
+    foreach($file in @('Install.ps1','Installer.Common.ps1','Uninstall.ps1')){
         Copy-Item -LiteralPath (Join-Path "$project\installer" $file) -Destination $stage
     }
     # The distribution keeps the existing flat installer layout for compatibility.

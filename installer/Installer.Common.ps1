@@ -1,4 +1,4 @@
-# Shared by the local installer and restore script. Windows PowerShell 5.1+.
+# Shared by the local installer and uninstaller. Windows PowerShell 5.1+.
 function Get-FiddlerInstallCandidates {
     foreach ($key in @(
         'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*',

@@ -23,8 +23,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\Test-Installer.ps1
 - src/Localization.cs：词典匹配、控件遍历、动态更新、悬浮提示、重新加载和英文恢复。
 - installer/Installer.Common.ps1：共享的 Fiddler 路径识别；安装器和构建脚本使用同一份实现。
 - tests/Tests.cs：词典与真实 WinForms/Fiddler 控件回归。
-- tests/Test-Installer.ps1：模拟下载、复制故障、备份与还原；测试模拟状态只留在独立测试进程。
-- tests/Test-Release.ps1：检查生成的 ZIP 布局、校验文件及实际安装/还原夹具。
+- tests/Test-Installer.ps1：模拟下载、复制故障、重复安装与卸载；测试模拟状态只留在独立测试进程。
+- tests/Test-Release.ps1：检查生成的 ZIP 布局、校验文件及实际安装/卸载夹具。
 
 插件只改变 UI 显示。输入框、脚本、请求响应正文、会话数据不翻译；固定下拉框仅改变显示，保持原始选项和选择值。不会接收请求/响应回调或修改代理、证书设置。
 

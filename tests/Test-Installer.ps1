@@ -1,4 +1,4 @@
-$ErrorActionPreference='Stop'
+﻿$ErrorActionPreference='Stop'
 $project=Split-Path -Parent $PSScriptRoot
 $work=Join-Path $project ('test-output\online-installer-'+[guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $work -Force | Out-Null
@@ -37,42 +37,50 @@ $global:FiddlerInstallerTest_running=$true
 function Get-Process {param($Name,$ErrorAction) if($global:FiddlerInstallerTest_running){[pscustomobject]@{Name='Fiddler'}}}
 $offline=Join-Path $work 'offline-package'
 New-Item -ItemType Directory -Path "$offline\Scripts\FiddlerChinese" -Force | Out-Null
-foreach($file in @('Install.ps1','Installer.Common.ps1','Restore.ps1')){Copy-Item -LiteralPath "$project\installer\$file" -Destination $offline}
+foreach($file in @('Install.ps1','Installer.Common.ps1','Uninstall.ps1')){Copy-Item -LiteralPath "$project\installer\$file" -Destination $offline}
 Set-Content -LiteralPath "$offline\Scripts\FiddlerChinese.dll" -Value 'installer byte-copy fixture; not an executable assembly'
 Copy-Item -LiteralPath "$project\translations\FiddlerTexts.txt","$project\translations\FiddlerTexts.context.txt" -Destination "$offline\Scripts\FiddlerChinese"
-Assert-Fails {& "$offline\Install.ps1" -FiddlerPath $one} 'close Fiddler' 'running Fiddler is not terminated'
-Assert-Installer (!(Test-Path "$one\localization-backups")) 'running-app refusal changes no files'
+Assert-Fails {& "$offline\Install.ps1" -FiddlerPath $one} '请先关闭 Fiddler' 'running Fiddler is not terminated'
+Assert-Installer (@(Get-ChildItem -LiteralPath "$one\Scripts" -Force).Count -eq 0) 'running-app refusal changes no files'
 $global:FiddlerInstallerTest_running=$false
 Set-Content -LiteralPath "$one\Scripts\FdToChinese.dll" -Value 'legacy translator'
+Assert-Fails {& "$offline\Install.ps1" -FiddlerPath $one} '旧版汉化插件' 'conflicting legacy plugin is rejected before installation'
+Assert-Installer ((Get-Content "$one\Scripts\FdToChinese.dll" -Raw).Trim() -eq 'legacy translator') 'legacy plugin is not silently moved or deleted'
+Remove-Item -LiteralPath "$one\Scripts\FdToChinese.dll"
 Set-Content -LiteralPath "$one\Scripts\OtherPlugin.dll" -Value 'unrelated plugin'
-& "$offline\Install.ps1" -FiddlerPath $one
-$first=Get-Content -LiteralPath "$one\Scripts\FiddlerChinese\installation.json" -Raw | ConvertFrom-Json
+$output=@(& "$offline\Install.ps1" -FiddlerPath $one)
 Assert-Installer ((Get-FileHash "$one\Scripts\FiddlerChinese.dll").Hash -eq (Get-FileHash "$offline\Scripts\FiddlerChinese.dll").Hash) 'installed DLL matches package'
-Assert-Installer (!(Test-Path "$one\Scripts\FdToChinese.dll") -and (Test-Path "$($first.Backup)\FdToChinese.dll")) 'legacy translator is backed up and disabled'
-Set-Content -LiteralPath "$one\Scripts\FiddlerChinese\FiddlerTexts.context.txt" -Value 'custom translation'
+Assert-Installer (!(Test-Path "$one\localization-backups") -and !(Test-Path "$one\Scripts\FiddlerChinese\installation.json")) 'fresh install creates no backup directory or installation record'
+Assert-Installer (($output -join "`n").Contains("安装位置：$one") -and ($output -join "`n").Contains("`n`n")) 'installation path and result use separate Chinese paragraphs'
+$lock=[IO.File]::Open("$one\Scripts\FiddlerChinese.dll",[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read)
+try {$output=@(& "$offline\Install.ps1" -FiddlerPath $one)} finally {$lock.Dispose()}
+Assert-Installer (($output -join "`n").Contains('无需更新')) 'identical files are not rewritten even when the DLL is read-locked'
+Set-Content -LiteralPath "$one\Scripts\FiddlerChinese\FiddlerTexts.context.txt" -Value 'old translation'
+Set-Content -LiteralPath "$one\Scripts\FiddlerChinese\installation.json" -Value 'obsolete install pointer'
 & "$offline\Install.ps1" -FiddlerPath $one
-$second=Get-Content -LiteralPath "$one\Scripts\FiddlerChinese\installation.json" -Raw | ConvertFrom-Json
-Assert-Installer ($first.Backup -ne $second.Backup) 'repeat installation creates a new backup'
-& "$offline\Restore.ps1" -FiddlerPath $one
-Assert-Installer ((Get-Content "$one\Scripts\FiddlerChinese\FiddlerTexts.context.txt" -Raw).Trim() -eq 'custom translation') 'restore recovers custom translations'
-& "$offline\Restore.ps1" -FiddlerPath $one
-Assert-Installer (!(Test-Path "$one\Scripts\FiddlerChinese.dll") -and (Test-Path "$one\Scripts\FdToChinese.dll")) 'restore recovers pre-install state'
-Assert-Installer ((Get-Content "$one\Scripts\OtherPlugin.dll" -Raw).Trim() -eq 'unrelated plugin') 'unrelated plugin remains unchanged'
+Assert-Installer ((Get-FileHash "$one\Scripts\FiddlerChinese\FiddlerTexts.context.txt").Hash -eq (Get-FileHash "$offline\Scripts\FiddlerChinese\FiddlerTexts.context.txt").Hash) 'update directly installs the packaged translation'
+Assert-Installer (!(Test-Path "$one\localization-backups") -and !(Test-Path "$one\Scripts\FiddlerChinese\installation.json")) 'update creates no backup and removes obsolete metadata'
 
-# Inject one copy failure after the DLL write; verify transactional rollback.
-$global:FiddlerInstallerTest_injectFailure=$true
+# A copy error is reported honestly, without claiming success or rollback.
+Set-Content -LiteralPath "$one\Scripts\FiddlerChinese\FiddlerTexts.txt" -Value 'needs update'
 function Copy-Item {
     [CmdletBinding()]param([string[]]$LiteralPath,[string]$Destination,[switch]$Force)
-    if($global:FiddlerInstallerTest_injectFailure -and $Destination -eq "$one\Scripts\FiddlerChinese\FiddlerTexts.txt") {
-        $global:FiddlerInstallerTest_injectFailure=$false
-        throw 'Injected copy failure'
-    }
+    if($Destination -eq "$one\Scripts\FiddlerChinese\FiddlerTexts.txt"){throw 'Injected copy failure'}
     Microsoft.PowerShell.Management\Copy-Item @PSBoundParameters
 }
-Assert-Fails {& "$offline\Install.ps1" -FiddlerPath $one} 'Injected copy failure' 'partial copy failure is reported'
-Assert-Installer (!(Test-Path "$one\Scripts\FiddlerChinese.dll") -and (Test-Path "$one\Scripts\FdToChinese.dll")) 'partial install rolls back files'
+Assert-Fails {& "$offline\Install.ps1" -FiddlerPath $one} '安装未完成.*Injected copy failure' 'copy failure is reported without a false success'
 Remove-Item Function:\Copy-Item
-
+Assert-Installer (!(Test-Path "$one\localization-backups")) 'failed update does not create backups'
+& "$offline\Install.ps1" -FiddlerPath $one
+Set-Content -LiteralPath "$one\Scripts\FiddlerChinese\notes.txt" -Value 'unrelated file'
+$global:FiddlerInstallerTest_running=$true
+Assert-Fails {& "$offline\Uninstall.ps1" -FiddlerPath $one} '请先关闭 Fiddler' 'uninstall refuses while Fiddler is running'
+$global:FiddlerInstallerTest_running=$false
+& "$offline\Uninstall.ps1" -FiddlerPath $one
+Assert-Installer (!(Test-Path "$one\Scripts\FiddlerChinese.dll") -and !(Test-Path "$one\Scripts\FiddlerChinese\FiddlerTexts.txt") -and !(Test-Path "$one\Scripts\FiddlerChinese\FiddlerTexts.context.txt")) 'uninstall removes the plugin and both translation files'
+Assert-Installer ((Get-Content "$one\Scripts\OtherPlugin.dll" -Raw).Trim() -eq 'unrelated plugin' -and (Test-Path "$one\Scripts\FiddlerChinese\notes.txt")) 'uninstall preserves unrelated plugins and files'
+& "$offline\Uninstall.ps1" -FiddlerPath $one
+Assert-Installer (!(Test-Path "$one\localization-backups")) 'repeated uninstall is harmless and creates no backup'
 # Exercise the actual bootstrap with mocked GitHub responses and a harmless child installer.
 # No network requests are sent and no production installer is launched against the real host.
 $fake=Join-Path $work 'fake-release'

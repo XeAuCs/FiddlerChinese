@@ -11,9 +11,10 @@ Assert-Release ((Get-FileHash -LiteralPath $zip).Hash -eq $Matches[1]) 'release 
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $package=Join-Path $work 'package'
 [IO.Compression.ZipFile]::ExtractToDirectory($zip,$package)
-foreach($file in @('Install.ps1','Installer.Common.ps1','Restore.ps1','install-online.ps1','Scripts\FiddlerChinese.dll','Scripts\FiddlerChinese\FiddlerTexts.txt','Scripts\FiddlerChinese\FiddlerTexts.context.txt')){
+foreach($file in @('Install.ps1','Installer.Common.ps1','Uninstall.ps1','install-online.ps1','Scripts\FiddlerChinese.dll','Scripts\FiddlerChinese\FiddlerTexts.txt','Scripts\FiddlerChinese\FiddlerTexts.context.txt')){
     Assert-Release (Test-Path -LiteralPath (Join-Path $package $file) -PathType Leaf) "offline/online package contract: $file"
 }
+Assert-Release (!(Test-Path "$package\Restore.ps1")) 'obsolete restore script is absent'
 Assert-Release (@(Get-ChildItem -LiteralPath $package -Filter '*.cmd').Count -eq 1) 'double-click launcher included'
 foreach($file in @('FiddlerTexts.txt','FiddlerTexts.context.txt')){
     Assert-Release ((Get-FileHash -LiteralPath "$package\Scripts\FiddlerChinese\$file").Hash -eq (Get-FileHash -LiteralPath "$project\translations\$file").Hash) "single source of translations: $file"
@@ -25,7 +26,8 @@ Set-Content -LiteralPath "$target\Fiddler.exe" -Value 'fixture only; never execu
 function Get-Process {param($Name,$ErrorAction)}
 & "$package\Install.ps1" -FiddlerPath $target
 Assert-Release ((Get-FileHash -LiteralPath "$target\Scripts\FiddlerChinese.dll").Hash -eq (Get-FileHash -LiteralPath "$package\Scripts\FiddlerChinese.dll").Hash) 'generated release installs its DLL in a path with spaces'
-& "$package\Restore.ps1" -FiddlerPath $target
-Assert-Release (!(Test-Path -LiteralPath "$target\Scripts\FiddlerChinese.dll")) 'generated release restores pre-install state'
+Assert-Release (!(Test-Path "$target\localization-backups")) 'release install creates no backup folder'
+& "$package\Uninstall.ps1" -FiddlerPath $target
+Assert-Release (!(Test-Path -LiteralPath "$target\Scripts\FiddlerChinese.dll")) 'generated release uninstalls the plugin'
 "PASS: $count release packaging assertions." | Set-Content -LiteralPath "$project\test-output\release-results.txt"
 Write-Output "ALL PASSED: $count"
