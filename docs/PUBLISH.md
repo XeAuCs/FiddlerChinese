@@ -1,6 +1,6 @@
 # 发布到 GitHub
 
-仓库：[XeAuCs/FiddlerChinese](https://github.com/XeAuCs/FiddlerChinese)，默认分支 main。根目录 install-online.ps1 的地址保持稳定。
+仓库：[XeAuCs/FiddlerChinese](https://github.com/XeAuCs/FiddlerChinese)，默认分支 main。在线安装入口位于 installer/install-online.ps1，README 已使用此地址。
 
 ## 生成安装包
 

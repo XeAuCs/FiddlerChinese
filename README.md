@@ -9,7 +9,7 @@ Fiddler Classic 中文汉化插件，包含 372 条译文，覆盖常用菜单�
 关闭 Fiddler，在 PowerShell 中运行：
 
 ```powershell
-& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/XeAuCs/FiddlerChinese/main/install-online.ps1?v=2').Content)) -Repository 'XeAuCs/FiddlerChinese'
+& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/XeAuCs/FiddlerChinese/main/installer/install-online.ps1').Content)) -Repository 'XeAuCs/FiddlerChinese'
 ```
 
 安装器通过公开 Release 链接下载文件，不查询 GitHub API，也无需登录 GitHub。自动识别安装目录，校验下载并备份已有文件；不会强制关闭正在运行的 Fiddler。
@@ -42,11 +42,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\Restore.ps1
 | --- | --- |
 | `src/` | 插件入口与汉化逻辑 |
 | `translations/` | 唯一维护的译文表 |
-| `installer/` | 离线安装、还原和双击入口 |
+| `installer/` | 在线安装、离线安装、还原和双击入口 |
 | `scripts/` | 构建、测试、打包入口 |
 | `tests/` | 插件、安装器和发布包测试 |
 | `docs/` | 开发、发布和验证说明 |
 
-根目录的 `install-online.ps1` 是公开安装入口，保持现有命令兼容。编译 DLL、安装包和测试输出由脚本生成，不放进源码目录；使用者直接下载 Release 即可。
+公开安装入口位于 `installer/install-online.ps1`，请使用上面的新命令；旧的根目录脚本链接已移除。编译 DLL、安装包和测试输出由脚本生成，不放进源码目录；使用者直接下载 Release 即可。
 
 [开发与测试](docs/DEVELOPMENT.md) · [发布步骤](docs/PUBLISH.md) · [验证范围](docs/VALIDATION.md)

@@ -26,7 +26,7 @@ try {
     }
     # The distribution keeps the existing flat installer layout for compatibility.
     Get-ChildItem -LiteralPath "$project\installer" -Filter '*.cmd' -File | Copy-Item -Destination $stage
-    Copy-Item -LiteralPath "$project\README.md","$project\install-online.ps1" -Destination $stage
+    Copy-Item -LiteralPath "$project\README.md","$project\installer\install-online.ps1" -Destination $stage
     New-Item -ItemType Directory -Path "$stage\docs" | Out-Null
     Get-ChildItem -LiteralPath "$project\docs" -Filter '*.md' -File | Copy-Item -Destination "$stage\docs"
     $zip=Join-Path $out 'FiddlerChinese.zip'

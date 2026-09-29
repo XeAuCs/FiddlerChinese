@@ -105,23 +105,23 @@ function Invoke-WebRequest {
     } else {Copy-Item -LiteralPath $global:FiddlerInstallerTest_zip -Destination $OutFile}
 }
 $oldTls=[Net.ServicePointManager]::SecurityProtocol
-& "$project\install-online.ps1" -Repository 'test/FiddlerChinese' -FiddlerPath $one
+& "$project\installer\install-online.ps1" -Repository 'test/FiddlerChinese' -FiddlerPath $one
 Assert-Installer (Test-Path "$one\bootstrap-ok.txt") 'bootstrap reaches installer and preserves a path with spaces'
 Assert-Installer ($global:FiddlerInstallerTest_requested.Count -eq 2 -and $global:FiddlerInstallerTest_requested[0] -eq 'https://github.com/test/FiddlerChinese/releases/latest/download/FiddlerChinese.zip' -and $global:FiddlerInstallerTest_requested[1] -eq 'https://github.com/test/FiddlerChinese/releases/latest/download/FiddlerChinese.zip.sha256') 'latest release downloads directly without GitHub API'
 Assert-Installer (!(Test-Path $global:FiddlerInstallerTest_downloadStage)) 'temporary download directory is cleaned'
 Assert-Installer ([Net.ServicePointManager]::SecurityProtocol -eq $oldTls) 'original TLS settings are restored'
 Remove-Item -LiteralPath "$one\bootstrap-ok.txt"
 $global:FiddlerInstallerTest_mode='corrupt'
-Assert-Fails {& "$project\install-online.ps1" -Repository 'test/FiddlerChinese' -FiddlerPath $one} 'checksum mismatch' 'corrupt download is rejected'
+Assert-Fails {& "$project\installer\install-online.ps1" -Repository 'test/FiddlerChinese' -FiddlerPath $one} 'checksum mismatch' 'corrupt download is rejected'
 Assert-Installer (!(Test-Path "$one\bootstrap-ok.txt")) 'corrupt download never launches installer'
 $global:FiddlerInstallerTest_mode='missing'
-Assert-Fails {& "$project\install-online.ps1" -Repository 'test/FiddlerChinese' -FiddlerPath $one} "Cannot download 'FiddlerChinese.zip.sha256'" 'missing release asset is rejected'
+Assert-Fails {& "$project\installer\install-online.ps1" -Repository 'test/FiddlerChinese' -FiddlerPath $one} "Cannot download 'FiddlerChinese.zip.sha256'" 'missing release asset is rejected'
 Assert-Installer (!(Test-Path "$one\bootstrap-ok.txt")) 'missing checksum never launches installer'
 $global:FiddlerInstallerTest_mode='network'
-Assert-Fails {& "$project\install-online.ps1" -Repository 'test/FiddlerChinese' -FiddlerPath $one} 'Cannot download' 'network failure gives actionable error'
+Assert-Fails {& "$project\installer\install-online.ps1" -Repository 'test/FiddlerChinese' -FiddlerPath $one} 'Cannot download' 'network failure gives actionable error'
 $global:FiddlerInstallerTest_mode='success'
 $global:FiddlerInstallerTest_requested=@()
-& "$project\install-online.ps1" -Repository 'test/FiddlerChinese' -FiddlerPath $one -Version 'v2.0.0'
+& "$project\installer\install-online.ps1" -Repository 'test/FiddlerChinese' -FiddlerPath $one -Version 'v2.0.0'
 Assert-Installer ($global:FiddlerInstallerTest_requested[0] -eq 'https://github.com/test/FiddlerChinese/releases/download/v2.0.0/FiddlerChinese.zip') 'explicit release version is supported'
 Remove-Item -LiteralPath "$one\bootstrap-ok.txt"
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -130,7 +130,7 @@ $archive=[IO.Compression.ZipFile]::Open($unsafe,[IO.Compression.ZipArchiveMode]:
 try {$entry=$archive.CreateEntry('../escaped.txt');$stream=$entry.Open();$stream.WriteByte(65);$stream.Dispose()} finally {$archive.Dispose()}
 $global:FiddlerInstallerTest_zip=$unsafe
 $global:FiddlerInstallerTest_hash=(Get-FileHash $unsafe).Hash
-Assert-Fails {& "$project\install-online.ps1" -Repository 'test/FiddlerChinese' -FiddlerPath $one} 'Unsafe path' 'archive path traversal is rejected before extraction'
+Assert-Fails {& "$project\installer\install-online.ps1" -Repository 'test/FiddlerChinese' -FiddlerPath $one} 'Unsafe path' 'archive path traversal is rejected before extraction'
 Assert-Installer (!(Test-Path "$one\bootstrap-ok.txt")) 'unsafe archive never launches installer'
 "PASS: $global:FiddlerInstallerTest_checks installer assertions (local fixtures; GitHub responses mocked)." | Set-Content -LiteralPath "$project\test-output\online-installer-results.txt"
 Write-Output "ALL PASSED: $global:FiddlerInstallerTest_checks"
